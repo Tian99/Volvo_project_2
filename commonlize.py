@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pandas_profiling as pp
 from pandas import ExcelWriter, ExcelFile
+from color_codings import color_collections
 
 #####################Use this function as visualization
 #df.discribe()
@@ -19,25 +20,34 @@ def normalize(data_Bad):
 	total_count = 0
 	omitted = crucial = result = []
 	free_result = toxic_result = pd.DataFrame()
-	#On the loose end so that it could be more precise(Handle the space, the separation later)
-	haRegex = re.compile("([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3})[/]([a-zA-Z]\d{1,3}|\d{1,3})")
-	wrong_haRegex = re.compile("([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3})[*]([a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3})[*]([a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3})[*]([a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3}|[a-zA-Z]+\d{1,3}\s)[/](\s[a-zA-Z]+\d{1,3}|[a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3})")
-	#Finding the need-changed expression from the already filtered expression
-	detailed_find = re.compile("([a-zA-Z]\d{1,3}[/])|([a-zA-Z]+\s+\d{1,3}[/])|(\d{1,3}[/])")
+	#(/)+[character+number or character + space + number or number] + (*) + [character + number or character + space + number or number] + (*).......keep on going with the same pattern
+	#Finding the main part ex: /A3*D4*45*3
 	find_first = re.compile("([/]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3})[*]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3})[*]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3})[*]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3}))|([/]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3})[*]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3})[*]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3}))")
+	#Right now simply exclude anything with a / in the back
+	#f3*a3*c3*k5/a3
+	wrong_haRegex = re.compile("([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3})[*]([a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3})[*]([a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3})[*]([a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3}|[a-zA-Z]+\d{1,3}\s)[/](\s[a-zA-Z]+\d{1,3}|[a-zA-Z]\d{1,3}|\d{1,3}|[a-zA-Z]+\s+\d{1,3})")
+	#On the loose end so that it could be more precise(Handle the space, the separation later)
+	#s4/d3
+	haRegex = re.compile("([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3})[/]([a-zA-Z]\d{1,3}|\d{1,3})")
+	#Finding the need-changed expression from the already filtered expression
+	#a3/
+	detailed_find = re.compile("([a-zA-Z]\d{1,3}[/])|([a-zA-Z]+\s+\d{1,3}[/])|(\d{1,3}[/])")
+	#/a4*
 	first_sub = re.compile("[/]([a-zA-Z]\d{1,3}|[a-zA-Z]+\s+\d{1,3}|\d{1,3})[*]")
-
-	exception = re.compile("[a-zA-Z]\d{1,3}[/](.*?)[/][a-zA-Z]\d{1,3}(?![^ ])")  
+	# exception = re.compile("[a-zA-Z]\d{1,3}[/](.*?)[/][a-zA-Z]\d{1,3}(?![^ ])")  
 	# exception = re.compile("(([a-zA-Z]\d{1,3}[/])|([a-zA-Z]+\s+\d{1,3}[/])|(\d{1,3}[/]))[/](.*?)[/](([a-zA-Z]\d{1,3}[/])|([a-zA-Z]+\s+\d{1,3}[/])|(\d{1,3}[/]))")
+	
 	#Filter out the toxic dataset, later could do more filtering for the data leftovers.
 	#Do it row by row
 	for index, row in data_Bad.iterrows():
 		total_count = total_count + 1
+		print('Percentage of completion: ')
 		print(total_count/len(data_Bad.index))
 		#Those are four main target that should be looked into
-		#May unclude comment field 1 later
 		for i in [row['Comment Field 3'], row['Comment Field 2']]:
+			#Keeop an origional version before the space is removed
 			origin_par = i
+			#Remove the space for each data set to increase the precision
 			i = i.replace(' ','')
 			origin = 'Comment Field 3' if i == row['Comment Field 3'] else 'Comment Field 2'
 			#Ignore anything with a / on the back
@@ -123,47 +133,18 @@ def normalize_and_export(data):
 	merged = pd.concat(need_concat)
 	print('Converting to excel now')
 	# print(len(data.index))
-	print(len(data_Bad.index))
-	print(len(data_Free.index))
-	print(len(merged.index))
+	print('length of toxic data: %d',len(data_Bad.index))
+	print('length of non-toxic data: %d',len(data_Free.index))
+	print('length of data after merging: %d',len(merged.index))
 
-	print(len(truck_without_loc.index))
-	print(len(data.index))
+	print('length of data without the location index: %d', len(truck_without_loc.index))
+	print('length of data in total: %d', len(data.index))
+	#Transform the solution to excel and to pickle
 	merged.to_excel('../output/normalized.xlsx')
 	merged.to_pickle('../output/normalized.pkl')
 
 	return merged
 
-def color_collections():
-	collection = {
-		110:'Dent',
-		112:'Broken',
-		113:'Cut',
-		114:'Puncture',
-		118:'Stained/Soiled',
-		119:'Missing',
-		121:'Overspray',
-		122:'Peel',
-		123:'Gouge',
-		125:'Poor/Repair',
-		126:'Incorrect/Paint',
-		155:'None',
-		166:'None',
-		171:'Rust',
-		174:'None',
-		182:'Crack',
-		195:'Scratch',
-		22:'None',
-		64:'Chaffed/Rubbing',
-		65:'Bent',
-		92:'Run/Sag',
-		93:'Dirt',
-		94:'Fish/Eye/Solvent POP',
-		96:'Orange/Peel',
-		97:'Thin',
-		98:'Paint/Mismatch',
-} 
-	return collection
 
 def color_encoding(merged, collection):
 	find_color = re.compile("([*]\d{1,3}[*])|([*]\d{1,3})|(\d{1,3}[*])")
@@ -191,6 +172,8 @@ def color_encoding(merged, collection):
 	merged.to_excel('../output/finished.xlsx')
 	print('Color coding finished')
 
+#The main function where everything runs
+
 collection = color_collections()
 #Check if file exists
 if os.path.isfile('../output/normalized.pkl'):
@@ -204,3 +187,5 @@ else:
 	merged = normalize_and_export(data)
 	print('Data exported now, performing color coding')
 	color_encoding(merged, collection)
+
+
