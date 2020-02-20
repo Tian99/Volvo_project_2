@@ -13,12 +13,11 @@ from color_codings import color_collections
 
 #Output the American side with data having the location information
 
-
 def normalize(data_Bad):
 
 	count = 0
 	total_count = 0
-	omitted = crucial = result = []
+	result = []
 	free_result = toxic_result = pd.DataFrame()
 	#(/)+[character+number or character + space + number or number] + (*) + [character + number or character + space + number or number] + (*).......keep on going with the same pattern
 	#Finding the main part ex: /A3*D4*45*3
@@ -43,8 +42,10 @@ def normalize(data_Bad):
 		total_count = total_count + 1
 		print('Percentage of completion: ')
 		print(total_count/len(data_Bad.index))
-		#Those are four main target that should be looked into
+
+		#Those are two main target that should be looked into
 		for i in [row['Comment Field 3'], row['Comment Field 2']]:
+
 			#Keeop an origional version before the space is removed
 			origin_par = i
 			#Remove the space for each data set to increase the precision
@@ -76,7 +77,6 @@ def normalize(data_Bad):
 					print(assignment)
 					print('\n\n')
 
-
 				else:
 					free_result = free_result.append(row)
 
@@ -84,6 +84,7 @@ def normalize(data_Bad):
 			else:
 				#Acceptable data
 				free_result = free_result.append(row)
+
 		result.clear()
 
 	return data_Bad
@@ -171,21 +172,3 @@ def color_encoding(merged, collection):
 	merged = merged.assign(color_defect = all_dye)
 	merged.to_excel('../output/finished.xlsx')
 	print('Color coding finished')
-
-#The main function where everything runs
-
-collection = color_collections()
-#Check if file exists
-if os.path.isfile('../output/normalized.pkl'):
-	print('the normalized data already existed, performing color coding')
-	merged = pd.read_pickle('../output/normalized.pkl')
-	color_encoding(merged, collection)
-else: 
-	print('the normalized data does not exist, performing normalization first then color coding')
-	#Read the converted pickle file first
-	data = pd.read_pickle('../data.pkl')
-	merged = normalize_and_export(data)
-	print('Data exported now, performing color coding')
-	color_encoding(merged, collection)
-
-
